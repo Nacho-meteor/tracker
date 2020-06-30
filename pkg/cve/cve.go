@@ -2,6 +2,7 @@ package cve
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/deepin-cve/tracker/pkg/db"
 	"github.com/jinzhu/gorm"
@@ -15,8 +16,7 @@ func QueryCVEList(params map[string]interface{}, offset, count int,
 	if handler == nil {
 		return nil, 0, fmt.Errorf("No db handler found for version '%s'", version)
 	}
-
-	var sql = handler.Model(&db.CVE{})
+	var sql = handler.Table((version+"_cves"))
 	sql = addParamsToSQL(sql, params)
 	value, ok := params["sort"]
 	if ok {
@@ -35,7 +35,8 @@ func QueryCVEList(params map[string]interface{}, offset, count int,
 
 	var list db.CVEList
 	var total int64
-	err := sql.Count(&total).Offset(offset).Limit(count).Find(&list).Error
+	sql.Count(&total)
+	err := sql.Offset(offset).Limit(count).Find(&list).Error
 	if err != nil {
 		return nil, 0, err
 	}
@@ -61,7 +62,13 @@ func addParamsToSQL(sql *gorm.DB, params map[string]interface{}) *gorm.DB {
 	if len(params) == 0 {
 		return sql
 	}
-
+	score,ok:=params["score"]
+	if ok {
+		scoreParam:=strings.Split(score.(string), "-")
+		if len(scoreParam) == 2 {
+			sql = sql.Where("score >= ? and score <= ?",scoreParam[0],scoreParam[1])
+		}
+	}
 	var availableList = []struct {
 		key     string
 		useLike bool

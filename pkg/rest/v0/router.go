@@ -1,12 +1,10 @@
 package v0
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
-
-	"encoding/json"
 
 	"github.com/deepin-cve/tracker/internal/config"
 	"github.com/deepin-cve/tracker/pkg/db"
@@ -14,17 +12,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const (
-	defaultPageCount = 15
-)
 
 // Route start gin router
 func Route(addr string, debug bool) error {
-	if debug {
-		gin.SetMode(gin.DebugMode)
+	if !debug {
+		gin.SetMode(gin.ReleaseMode)
 	}
+
 	var eng = gin.Default()
-	v0 := eng.Group("v0", cors())
+	eng.Use(cors())
+	v0 := eng.Group("v0")
 	v0.GET("/logs", queryLogList)
 
 	session := v0.Group("session")
@@ -45,7 +42,7 @@ func Route(addr string, debug bool) error {
 
 	tools := v0.Group("tools")
 	tools.POST("/debian/:version", checkAccessToken, fetchDebian)
-	tools.POST("/package/:version", checkAccessToken, initPackages)
+	//tools.POST("/package/:version", checkAccessToken, initPackages)
 	tools.POST("/score/:version", checkAccessToken, fetchScore)
 
 	return eng.Run(addr)
@@ -84,7 +81,7 @@ func login(c *gin.Context) {
 		return
 	}
 
-	ldapc := config.GetConfig("").LDAP
+	ldapc := config.GetConfig("./configs/config.yaml").LDAP
 	cli, err := ldap.NewClient(ldapc.Host, ldapc.Port, ldapc.Dn, ldapc.Password, ldapc.UserSearch)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -181,7 +178,7 @@ func queryLogList(c *gin.Context) {
 
 	pageStr := c.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageStr)
-	countStr := c.DefaultQuery("count", fmt.Sprint(defaultPageCount))
+	countStr := c.DefaultQuery("count", "15")
 	count, _ := strconv.Atoi(countStr)
 
 	total, list, err := db.QueryLogList(params, (page-1)*count, count)
@@ -208,23 +205,11 @@ func insertLog(log *db.Log) {
 func cors() gin.HandlerFunc {
 	// TODO(jouyouyun): using gin cors
 	return func(c *gin.Context) {
-		var headerList []string
-		for k := range c.Request.Header {
-			headerList = append(headerList, k)
-		}
-		var header = strings.Join(headerList, ", ")
-		if len(header) != 0 {
-			header = fmt.Sprintf("access-control-allow-origin, access-control-allow-headers, %s",
-				header)
-		} else {
-			header = fmt.Sprintf("access-control-allow-origin, access-control-allow-headers")
-		}
-
 		if len(c.Request.Header.Get("Origin")) != 0 {
 			c.Header("Access-Control-Allow-Origin", "*")
-			c.Header("Access-Control-Allow-Headers", header)
+			c.Header("Access-Control-Allow-Headers", "*")
 			c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, PATCH")
-			c.Header("Access-Control-Allow-Headers", "Authorization, Content-Length, X-CSRF-Token, Accept, Origin, Host, Connection, Accept-Encoding, Accept-Language,DNT, X-CustomHeader, Keep-Alive, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Pragma, Timestamp, timestamp")
+			//c.Header("Access-Control-Allow-Headers", "Authorization, Content-Length, X-CSRF-Token, Accept, Origin, Host, Connection, Accept-Encoding, Accept-Language,DNT, X-CustomHeader, Keep-Alive, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Pragma, Timestamp, timestamp")
 			c.Header("Access-Control-Allow-Credentials", "true")
 			// expose custom header
 			c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Content-Type, X-Current-Page, X-Resource-Total, X-Page-Size, Access-Token")

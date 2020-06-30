@@ -1,0 +1,7 @@
+FROM golang
+ADD . src/github.com/deepin-cve/tarcker/
+WORKDIR  src/github.com/deepin-cve/tarcker/
+RUN  go env -w GO111MODULE=on \
+&& go env -w GOPROXY=https://goproxy.io,direct  \ 
+&& make build
+CMD ["./deepin_cve_tracker","-h 127.0.0.1","-p a"]

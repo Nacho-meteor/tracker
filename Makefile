@@ -1,18 +1,22 @@
 PROG=deepin_cve_tracker
-DOCKER_TARGET=jouyouyun/deepin-cve-tracker
-DOCKER_BUILD_TARGET=${DOCKER_TARGET}.builder
 
 build:
 	go build -o ${PROG} cmd/main.go
 
 docker:
-	docker build -f deployments/Dockerfile --target builder -t ${DOCKER_BUILD_TARGET}:latest .
-	docker build -f deployments/Dockerfile -t ${DOCKER_TARGET}:latest .
+	docker run -d --name mysql-cve -p 32680:3306 --restart=always -v /data/db/mariadb:/var/lib/mysql mariadb
+	docker build -t cve-tracker -f deployments/deepin_cve_tracker-Dockerfile .
+	docker run -it -d -p 10808:10808 --restart=always  --name tracker  cve-tracker:latest ./deepin_cve_tracker
 
-docker-push:
-	docker push ${DOCKER_TARGET}:latest
+docker-clean:
+	docker stop tracker mysql-cve
+	docker rm tracker mysql-cve
+	docker image rm cve-tracker
+
 
 clean:
 	rm -f ${PROG}
 
 rebuild: clean build
+
+docker-rebuild: docker-clean docker

@@ -132,7 +132,18 @@ type CVE struct {
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `json:"-"`
+	VersionId string `gorm:"version_id"`
 }
+
+
+func (u CVE) TableName() string {
+	if u.VersionId == "camel" {
+		return "camel_cves"
+	} else{
+		return "eagle_cves"
+	}
+}
+
 
 // CVEList an array for CVE
 type CVEList []*CVE
@@ -198,7 +209,7 @@ func NewCVE(id, version string) (*CVE, error) {
 	}
 
 	var cve CVE
-	err := handler.Where("`id` = ?", id).First(&cve).Error
+	err := handler.Table((version+"_cves")).Where("`id` = ?", id).First(&cve).Error
 	if err != nil {
 		return nil, err
 	}

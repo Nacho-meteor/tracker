@@ -11,6 +11,15 @@ type Package struct {
 	Version       string `json:"version"`
 	Architecture  string `json"architecture`
 	SourceVersion string `json:"source_version"` // if empty, equal with version
+	VersionId string `json:"version_id"`
+}
+func (u Package) TableName() string {
+	fmt.Println("package:",u.VersionId)
+	if u.VersionId == "camel" {
+		return "camel_packages"
+	} else {
+		return "eagle_packages"
+	}
 }
 
 // PackageList package list

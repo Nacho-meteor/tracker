@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	ldapBase "gopkg.in/ldap.v3"
+	ldapBase "github.com/go-ldap/ldap/v3"
 )
 
 // Client ldap wrapper

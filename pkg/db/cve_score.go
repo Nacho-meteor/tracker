@@ -8,6 +8,15 @@ type CVEScore struct {
 	ScoreSeverity string `json:"score_severity"`
 	CVSS          string `json:"cvss"`
 	Score               float64 `json:"score"`
+	VersionId string `json:"version_id"`
+}
+func (u CVEScore) TableName() string {
+	fmt.Println("cve_score:",u.VersionId)
+	if u.VersionId == "camel" {
+		return "camel_cve_scores"
+	} else {
+		return "eagle_cve_scores"
+	}
 }
 
 // CVEScoreList cve score list
@@ -53,7 +62,7 @@ func (list CVEScoreList) UpdateCVE(version string) error {
 			continue
 		}
 
-		err := tx.Model(&CVE{}).Where("`id` = ?", score.ID).Updates(map[string]interface{}{
+		err := tx.Model(&CVE{VersionId: version}).Where("`id` = ?", score.ID).Updates(map[string]interface{}{
 			"cvss":  score.CVSS,
 			"score": score.Score,
 		}).Error

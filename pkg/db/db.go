@@ -1,42 +1,36 @@
 package db
 
 import (
-	"path/filepath"
-
-	"sync"
-
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"sync"
 )
 
 var (
 	// CommonDB session, version, log db handler
-	CommonDB *gorm.DB
+	db *gorm.DB
 
 	cveDBSet     = make(map[string]*gorm.DB)
 	cveSetLocker sync.Mutex
-
-	_dbDir string
 )
 
 // Init init db
-func Init(dbDir string) {
-	_dbDir = dbDir
+func Init(host  string,pwd_sql string) {
 	var err error
-	CommonDB, err = gorm.Open("sqlite3", filepath.Join(dbDir, "common.db"))
+	db, err = gorm.Open("mysql","root:"+pwd_sql+"@tcp("+host+":32680)/deepin_cve?parseTime=true")
 	if err != nil {
 		panic(err)
 	}
 
-	CommonDB.AutoMigrate(&Session{})
-	CommonDB.AutoMigrate(&Version{})
-	CommonDB.AutoMigrate(&Log{})
+	db.AutoMigrate(&Session{})
+	db.AutoMigrate(&Version{})
+	db.AutoMigrate(&Log{})
 	// TODO(jouyouyun): add to configuration
-	CommonDB.DB().SetMaxIdleConns(10)
-	CommonDB.DB().SetMaxOpenConns(100)
+	db.DB().SetMaxIdleConns(10)
+	db.DB().SetMaxOpenConns(100)
 
 	var verList VersionList
-	err = CommonDB.Find(&verList).Error
+	err = db.Find(&verList).Error
 	if err != nil {
 		panic(err)
 	}
@@ -50,7 +44,7 @@ func Init(dbDir string) {
 }
 
 // GetDBHandler return db handler by version
-func GetDBHandler(version string) *gorm.DB {
+func GetDBHandler(version string) (*gorm.DB) {
 	handler, ok := cveDBSet[version]
 	if !ok {
 		return nil
@@ -83,16 +77,14 @@ func DeleteDBHandler(version string) error {
 }
 
 func doSetDBHandler(version string) error {
-	db, err := gorm.Open("sqlite3", filepath.Join(_dbDir, version+".db"))
-	if err != nil {
-		return err
-	}
-	db.AutoMigrate(&CVE{})
-	db.AutoMigrate(&Package{})
-	db.AutoMigrate(&CVEScore{})
+
+	db.AutoMigrate(&CVE{VersionId: version})
+	db.AutoMigrate(&Package{VersionId: version})
+	db.AutoMigrate(&CVEScore{VersionId: version})
 	// TODO(jouyouyun): add to configuration
-	db.DB().SetMaxIdleConns(10)
+	db.DB().SetMaxIdleConns(0)
 	db.DB().SetMaxOpenConns(100)
 	cveDBSet[version] = db
 	return nil
 }
+

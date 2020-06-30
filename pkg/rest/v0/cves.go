@@ -21,6 +21,10 @@ func getCVEList(c *gin.Context) {
 	if len(pkg) != 0 {
 		params["package"] = pkg
 	}
+	score:=c.Query("score")
+	if len(score) !=0{
+		params["score"]=score
+	}
 	remote := c.Query("remote")
 	if len(remote) != 0 {
 		params["remote"] = remote
@@ -37,7 +41,7 @@ func getCVEList(c *gin.Context) {
 	} else if archived == "false" {
 		params["archived"] = false
 	}
-	sort := c.Query("sort")
+	sort := c.DefaultQuery("sort","true")
 	if len(sort) != 0 {
 		if db.ValidColumn(sort) {
 			params["sort"] = sort
@@ -46,7 +50,7 @@ func getCVEList(c *gin.Context) {
 
 	pageStr := c.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageStr)
-	countStr := c.DefaultQuery("count", fmt.Sprint(defaultPageCount))
+	countStr := c.DefaultQuery("count", "15")
 	count, _ := strconv.Atoi(countStr)
 
 	statusList := c.Query("status")
@@ -66,7 +70,6 @@ func getCVEList(c *gin.Context) {
 		})
 		return
 	}
-
 	infos, total, err := cve.QueryCVEList(params, (page-1)*count, count, version)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
