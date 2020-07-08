@@ -36,12 +36,12 @@ func FetchScore(url string) (*db.CVEScore, error) {
 	}
 
 	score, err := getScoreFromCVSS3(dom, filepath.Base(url))
-	/* if err == nil {
+	if err == nil {
 		return score, nil
-	} */
-	return score, nil
+	}
+	//return score, nil
 	// fmt.Println("Failed to fetch cve score3.0:",err)
-	// return getScoreFromCVSS2(dom, filepath.Base(url))
+	return getScoreFromCVSS2(dom, filepath.Base(url))
 }
 
 func getScoreFromCVSS3(dom *goquery.Document, id string) (*db.CVEScore, error) {

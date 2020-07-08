@@ -25,6 +25,11 @@ func getCVEList(c *gin.Context) {
 	if len(score) !=0{
 		params["score"]=score
 	}
+
+	exclude_package:=c.Query("ex_pkg")
+	if len(exclude_package) !=0{
+		params["ex_pkg"]=exclude_package
+	}
 	remote := c.Query("remote")
 	if len(remote) != 0 {
 		params["remote"] = remote

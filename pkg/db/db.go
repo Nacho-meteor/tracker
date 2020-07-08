@@ -26,7 +26,7 @@ func Init(host  string,pwd_sql string) {
 	db.AutoMigrate(&Version{})
 	db.AutoMigrate(&Log{})
 	// TODO(jouyouyun): add to configuration
-	db.DB().SetMaxIdleConns(10)
+	db.DB().SetMaxIdleConns(0)
 	db.DB().SetMaxOpenConns(100)
 
 	var verList VersionList

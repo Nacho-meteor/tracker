@@ -32,6 +32,7 @@ func QueryCVEList(params map[string]interface{}, offset, count int,
 		// default
 		sql = sql.Order("updated_at desc")
 	}
+	//sql = sql.Where("package != ? and package != ?","linux","webkit2gtk")
 
 	var list db.CVEList
 	var total int64
@@ -65,9 +66,18 @@ func addParamsToSQL(sql *gorm.DB, params map[string]interface{}) *gorm.DB {
 	score,ok:=params["score"]
 	if ok {
 		scoreParam:=strings.Split(score.(string), "-")
-		if len(scoreParam) == 2 {
+		if len(scoreParam) == 1{
+			sql = sql.Where("score = ? ",scoreParam[0])
+		} else if len(scoreParam) == 2 {
+			if scoreParam[0]> scoreParam[1]{
+				scoreParam[0],scoreParam[1]=scoreParam[1],scoreParam[0]
+			}
 			sql = sql.Where("score >= ? and score <= ?",scoreParam[0],scoreParam[1])
 		}
+	}
+	ex_pkg,ok:=params["ex_pkg"]
+	if ok && ex_pkg.(string)=="true"{
+		sql=sql.Where("package != ? and package != ?","linux","webkit2gtk")
 	}
 	var availableList = []struct {
 		key     string

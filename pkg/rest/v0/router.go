@@ -67,12 +67,25 @@ func checkAccessToken(c *gin.Context) {
 	c.Set("username", tk.Username)
 }
 
+func checkUserAccess(userName string) bool {
+	var checkUser bool
+	switch userName {
+	case "liuyong":checkUser=true
+	case "liuxin":checkUser=true
+	case "zhouzilong":checkUser=true
+	case "huangyong":checkUser=true
+	case "tuqinggang":checkUser=true
+	case "yanbowen":checkUser=true
+	default:
+		checkUser=false
+	}
+	return checkUser
+}
 func login(c *gin.Context) {
 	var data = struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}{}
-
 	err := c.ShouldBindJSON(&data)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -80,7 +93,11 @@ func login(c *gin.Context) {
 		})
 		return
 	}
-
+	checkUser:=checkUserAccess(data.Username)
+	if !checkUser{
+		c.String(403," \n user : "+data.Username+" don't have the access \n")
+		return
+	}
 	ldapc := config.GetConfig("./configs/config.yaml").LDAP
 	cli, err := ldap.NewClient(ldapc.Host, ldapc.Port, ldapc.Dn, ldapc.Password, ldapc.UserSearch)
 	if err != nil {
