@@ -76,6 +76,10 @@ func checkUserAccess(userName string) bool {
 	case "huangyong":checkUser=true
 	case "tuqinggang":checkUser=true
 	case "yanbowen":checkUser=true
+	case "guoxinrui":checkUser=true
+	case "maaiguo":checkUser=true
+	case "suchao":checkUser=true
+	case "zhushaotang":checkUser=true
 	default:
 		checkUser=false
 	}
