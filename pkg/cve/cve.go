@@ -30,7 +30,7 @@ func QueryCVEList(params map[string]interface{}, offset, count int,
 		}
 	} else {
 		// default
-		sql = sql.Order("updated_at desc")
+		sql = sql.Order("score desc")
 	}
 	//sql = sql.Where("package != ? and package != ?","linux","webkit2gtk")
 
@@ -77,7 +77,7 @@ func addParamsToSQL(sql *gorm.DB, params map[string]interface{}) *gorm.DB {
 	}
 	ex_pkg,ok:=params["ex_pkg"]
 	if ok && ex_pkg.(string)=="true"{
-		sql=sql.Where("package != ? and package != ?","linux","webkit2gtk")
+		sql=sql.Where("package != ?","linux")
 	}
 	var availableList = []struct {
 		key     string

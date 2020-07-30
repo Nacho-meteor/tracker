@@ -19,7 +19,7 @@ func Fetch(uri string, filterList []string) (db.DebianCVEList, error) {
 	}
 	fmt.Println("Fetch uri:", uri)
 
-	doc, err := goquery.NewDocument(uri)
+	doc, err := goquery.NewDocument("https://cve.uniontech.com/stable.html")
 	if err != nil {
 		fmt.Println("Failed to new document tree:", err)
 		return nil, err
