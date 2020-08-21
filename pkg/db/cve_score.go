@@ -4,19 +4,15 @@ import "fmt"
 
 // CVEScore CVSS 3.0 score from NVD
 type CVEScore struct {
-	ID            string `gorm:"primary_key;index" json:"id"`
-	ScoreSeverity string `json:"score_severity"`
-	CVSS          string `json:"cvss"`
-	Score               float64 `json:"score"`
-	VersionId string `json:"version_id"`
+	ID      string  `gorm:"primary_key;index" json:"id"`
+	Package string  `json:"package"`
+	CVSS    string  `json:"cvss"`
+	Score   float64 `json:"score"`
+	Scope   string  `json:"scope"`
 }
-func (u CVEScore) TableName() string {
-	fmt.Println("cve_score:",u.VersionId)
-	if u.VersionId == "camel" {
-		return "camel_cve_scores"
-	} else {
-		return "eagle_cve_scores"
-	}
+
+func (CVEScore) TableName() string {
+	return "cve"
 }
 
 // CVEScoreList cve score list
@@ -56,15 +52,16 @@ func (list CVEScoreList) UpdateCVE(version string) error {
 	var tx = handler.Begin()
 	for _, score := range list {
 		var info CVE
-		tx.Where("`id` = ?", score.ID).First(&info)
+		tx.Where("`cve_id` = ?", score.ID).First(&info)
 		if info.Score == score.Score {
 			// exists
 			continue
 		}
 
-		err := tx.Model(&CVE{VersionId: version}).Where("`id` = ?", score.ID).Updates(map[string]interface{}{
+		err := tx.Model(&CVE{}).Where("`cve_id` = ?", score.ID).Updates(map[string]interface{}{
 			"cvss":  score.CVSS,
 			"score": score.Score,
+			"scope": score.Scope,
 		}).Error
 		if err != nil {
 			tx.Rollback()

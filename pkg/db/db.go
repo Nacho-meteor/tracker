@@ -1,9 +1,10 @@
 package db
 
 import (
+	"sync"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"sync"
 )
 
 var (
@@ -15,26 +16,23 @@ var (
 )
 
 // Init init db
-func Init(host  string,pwd_sql string) {
+func Init(host string, pwd_sql string) {
 	var err error
-	db, err = gorm.Open("mysql","root:"+pwd_sql+"@tcp("+host+":32680)/deepin_cve?parseTime=true")
+	db, err = gorm.Open("mysql", "root:"+pwd_sql+"@tcp("+host+":3306)/new_cve?parseTime=true")
 	if err != nil {
 		panic(err)
 	}
-
 	db.AutoMigrate(&Session{})
 	db.AutoMigrate(&Version{})
 	db.AutoMigrate(&Log{})
 	// TODO(jouyouyun): add to configuration
 	db.DB().SetMaxIdleConns(0)
 	db.DB().SetMaxOpenConns(100)
-
 	var verList VersionList
 	err = db.Find(&verList).Error
 	if err != nil {
 		panic(err)
 	}
-
 	for _, ver := range verList {
 		err = doSetDBHandler(ver.Version)
 		if err != nil {
@@ -44,7 +42,7 @@ func Init(host  string,pwd_sql string) {
 }
 
 // GetDBHandler return db handler by version
-func GetDBHandler(version string) (*gorm.DB) {
+func GetDBHandler(version string) *gorm.DB {
 	handler, ok := cveDBSet[version]
 	if !ok {
 		return nil
@@ -78,13 +76,13 @@ func DeleteDBHandler(version string) error {
 
 func doSetDBHandler(version string) error {
 
-	db.AutoMigrate(&CVE{VersionId: version})
-	db.AutoMigrate(&Package{VersionId: version})
-	db.AutoMigrate(&CVEScore{VersionId: version})
+	db.AutoMigrate(&CVE{})
+	db.AutoMigrate(&Package{})
+	db.AutoMigrate(&PrePackage{})
+	db.AutoMigrate(&CVEScore{})
 	// TODO(jouyouyun): add to configuration
 	db.DB().SetMaxIdleConns(0)
 	db.DB().SetMaxOpenConns(100)
 	cveDBSet[version] = db
 	return nil
 }
-

@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -16,140 +15,58 @@ const (
 	CVEStatusFixed       = "fixed"       // 完成
 )
 
-// Filter urgency level
-type FilterUrgency string
-
-const (
-	// Filter tracker filter
-	FilterUrgencyHigh           FilterUrgency = "high_urgency"
-	FilterUrgencyMedium                       = "medium_urgency"
-	FilterUrgencyLow                          = "low_urgency"
-	FilterUrgencyUnimportant                  = "unimportant_urgency"
-	FilterUrgencyNotYetAssigned               = "unassigned_urgency"
-	FilterUrgencyEndOfLife                    = "endoflife_urgency"
-)
-
-func (filter FilterUrgency) String() string {
-	var ret string
-	switch filter {
-	case FilterUrgencyHigh:
-		ret = "high"
-	case FilterUrgencyMedium:
-		ret = "medium"
-	case FilterUrgencyLow:
-		ret = "low"
-	case FilterUrgencyUnimportant:
-		ret = "unimportant"
-	case FilterUrgencyNotYetAssigned:
-		ret = "not yet assigned"
-	case FilterUrgencyEndOfLife:
-		ret = "end of life"
-	default:
-		ret = "unknown"
-	}
-	return ret
-}
-
-// Filter scope
-type FilterScope string
-
-const (
-	// Filter scope list
-	FilterScopeHideRemote   FilterScope = "remote"
-	FilterScopeHideLocal                = "locale"
-	FilterScopeHideUnclear              = "unclear"
-	FilterScopeUndetermined             = "undetermined_issues"
-	FilterScopeNoDSA                    = "nodsa"
-	FilterScopeIgnore                   = "noignored"
-	FilterScopePostponed                = "nopostponed"
-)
-
-func (filter FilterScope) String() string {
-	var ret string
-	switch filter {
-	case FilterScopeHideRemote:
-		ret = "hide remote"
-	case FilterScopeHideLocal:
-		ret = "hide local"
-	case FilterScopeHideUnclear:
-		ret = "hide unclear"
-	case FilterScopeUndetermined:
-		ret = "include issues to be checked"
-	case FilterScopeNoDSA:
-		ret = "include issues tagged <on-dsa>"
-	case FilterScopeIgnore:
-		ret = "include issues tagged <no-ignored>"
-	case FilterScopePostponed:
-		ret = "include issues tagged <postponed>"
-	default:
-		ret = "unknown"
-	}
-	return ret
-}
-
-// DebianCVE store cve bug from debian tracker
-type DebianCVE struct {
-	ID      string `gorm:"primary_key" json:"id"` // jump to cve
-	Package string `json:"package"`
-	Urgency string `json:"urgency"`
-	Remote  string `json:"remote"`
-}
-
-// DebianCVEList an array for CVE
-type DebianCVEList []*DebianCVE
-
-// FixUrgency correct urgency
-func (info *DebianCVE) FixUrgency() {
-	switch {
-	case strings.HasPrefix(info.Urgency, "high"):
-		info.Urgency = string(FilterUrgencyHigh)
-	case strings.HasPrefix(info.Urgency, "medium"):
-		info.Urgency = string(FilterUrgencyMedium)
-	case strings.HasPrefix(info.Urgency, "low"):
-		info.Urgency = string(FilterUrgencyLow)
-	case strings.HasPrefix(info.Urgency, "unimportant"):
-		info.Urgency = string(FilterUrgencyUnimportant)
-	case strings.HasPrefix(info.Urgency, "not yet assigned"):
-		info.Urgency = string(FilterUrgencyNotYetAssigned)
-	case strings.HasPrefix(info.Urgency, "end-of-life"):
-		info.Urgency = string(FilterUrgencyEndOfLife)
-	}
+// INDEX storage update time and creation time
+type INDEX struct {
+	//	ID        uint       `json:"-"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `json:"-"`
 }
 
 // CVE store cve bug for tracking
 type CVE struct {
-	DebianCVE
-	Status      string `json:"status"`
-	Patch       string `json:"patch"`
-	Description string `json:"description"`
-	CVSS        string `json:"cvss"`
-
-	PreInstalled bool `json:"pre_installed"`
-	Archived     bool `json:"archived"`
-
-	Score float64 `json:"score"` // jump to nvd
-
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	DeletedAt *time.Time `json:"-"`
-	VersionId string `gorm:"version_id"`
+	Cve_id         string  `gorm:"primary_key" json:"cve_id"`
+	Package        string  `json:"package"`
+	Effect         string  `json:"effect"`
+	Status         string  `json:"status"`
+	Description    string  `json:"description"`
+	Cvss           int     `json:"cvss"`
+	Pre_installed  bool    `json:"pre_installed"`
+	Fixed_version  string  `json:"fixed_version"`
+	Scope          string  `json:"scope"`
+	Patch_local    string  `json:"patch_local"`
+	Patch_upstream string  `json:"patch_upstream"`
+	Poc            string  `json:"poc"`
+	Score          float64 `json:"score"`
+	INDEX
 }
 
-
-func (u CVE) TableName() string {
-	if u.VersionId == "camel" {
-		return "camel_cves"
-	} else{
-		return "eagle_cves"
-	}
+//Processing level
+type Level struct {
+	High   int `json:"high"`
+	Medium int `json:"medium"`
+	Low    int `json:"low"`
 }
 
+//Processing status
+type Total struct {
+	Unprocessed Level `json:"unprocessed"`
+	Processing  Level `json:"processing"`
+	Postpone    Level `json:"postpone"`
+	Hold        Level `json:"hold"`
+	Canceled    Level `json:"canceled"`
+	Fixed       Level `json:"fixed"`
+}
+
+func (CVE) TableName() string {
+	return "dist-cve"
+}
 
 // CVEList an array for CVE
 type CVEList []*CVE
 
 // FixPackage fill package
-func (list DebianCVEList) FixPackage() {
+func (list CVEList) FixPackage() {
 	var prev string
 	for _, cve := range list {
 		if len(cve.Package) != 0 {
@@ -160,10 +77,10 @@ func (list DebianCVEList) FixPackage() {
 	}
 }
 
-func (list DebianCVEList) Dump() {
+func (list CVEList) Dump() {
 	fmt.Println("\n--------- DUMP --------")
 	for _, cve := range list {
-		fmt.Println(cve.Package, cve.ID, cve.Urgency, cve.Remote)
+		fmt.Println(cve.Package, cve.Cve_id)
 	}
 	fmt.Println("--------- DUMP END --------")
 }
@@ -178,8 +95,8 @@ func (list CVEList) Create(version string) error {
 
 	for _, cve := range list {
 		var info CVE
-		tx.Where("`id` = ?", cve.ID).First(&info)
-		if info.ID == cve.ID {
+		tx.Where("`cve_id` = ?", cve.Cve_id).First(&info)
+		if info.Cve_id == cve.Cve_id {
 			// exists
 			continue
 		}
@@ -209,11 +126,47 @@ func NewCVE(id, version string) (*CVE, error) {
 	}
 
 	var cve CVE
-	err := handler.Table((version+"_cves")).Where("`id` = ?", id).First(&cve).Error
+	fmt.Println(id)
+	err := handler.Table(("dist-cve")).Where("`cve_id` = ?", id).First(&cve).Error //修改
 	if err != nil {
 		return nil, err
 	}
 	return &cve, nil
+}
+
+//Total
+func NewTotal(version string) (*Total, error) {
+	handler := GetDBHandler(version)
+	if handler == nil {
+		return nil, fmt.Errorf("Not found db hander for version '%s'", version)
+	}
+
+	var totallist Total
+	handler.Table(("dist-cve")).Where("`score` <= 4 and `status` = ?", "unprocessed").Count(&totallist.Unprocessed.Low)
+	handler.Table(("dist-cve")).Where("`score` > 4 and `score` < 7 and `status` = ? ", "unprocessed").Count(&totallist.Unprocessed.Medium)
+	handler.Table(("dist-cve")).Where("`score` >= 7 and `status` = ? ", "unprocessed").Count(&totallist.Unprocessed.High)
+
+	handler.Table(("dist-cve")).Where("`score` <= 4 and `status` = ?", "processing").Count(&totallist.Processing.Low)
+	handler.Table(("dist-cve")).Where("`score` > 4 and `score` < 7 and `status` = ? ", "processing").Count(&totallist.Processing.Medium)
+	handler.Table(("dist-cve")).Where("`score` >= 7 and `status` = ? ", "processing").Count(&totallist.Processing.High)
+
+	handler.Table(("dist-cve")).Where("`score` <= 4 and `status` = ?", "postpone").Count(&totallist.Postpone.Low)
+	handler.Table(("dist-cve")).Where("`score` > 4 and `score` < 7 and `status` = ? ", "postpone").Count(&totallist.Postpone.Medium)
+	handler.Table(("dist-cve")).Where("`score` >= 7 and `status` = ? ", "postpone").Count(&totallist.Postpone.High)
+
+	handler.Table(("dist-cve")).Where("`score` <= 4 and `status` = ?", "hold").Count(&totallist.Hold.Low)
+	handler.Table(("dist-cve")).Where("`score` > 4 and `score` < 7 and `status` = ? ", "hold").Count(&totallist.Hold.Medium)
+	handler.Table(("dist-cve")).Where("`score` >= 7 and `status` = ? ", "hold").Count(&totallist.Hold.High)
+
+	handler.Table(("dist-cve")).Where("`score` <= 4 and `status` = ?", "canceled").Count(&totallist.Canceled.Low)
+	handler.Table(("dist-cve")).Where("`score` > 4 and `score` < 7 and `status` = ? ", "canceled").Count(&totallist.Canceled.Medium)
+	handler.Table(("dist-cve")).Where("`score` >= 7 and `status` = ? ", "canceled").Count(&totallist.Canceled.High)
+
+	handler.Table(("dist-cve")).Where("`score` <= 4 and `status` = ?", "fixed").Count(&totallist.Fixed.Low)
+	handler.Table(("dist-cve")).Where("`score` > 4 and `score` < 7 and `status` = ? ", "fixed").Count(&totallist.Fixed.Medium)
+	handler.Table(("dist-cve")).Where("`score` >= 7 and `status` = ? ", "fixed").Count(&totallist.Fixed.High)
+
+	return &totallist, nil
 }
 
 // UpdateCVE update cve info with values

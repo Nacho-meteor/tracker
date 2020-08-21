@@ -4,22 +4,28 @@ import (
 	"fmt"
 )
 
-// Package store installed packages in ISO Image
-type Package struct {
-	Package       string `gorm:"primary_key" json:"package"` // package + ':' + architecture, unique key
-	Source        string `json:"source"`
-	Version       string `json:"version"`
-	Architecture  string `json"architecture`
-	SourceVersion string `json:"source_version"` // if empty, equal with version
-	VersionId string `json:"version_id"`
+//Pre-installed
+type PrePackage struct {
+	Id          int    `gorm:"primary_key" json:"id"` //  unique key
+	Name        string `json:"name"`
+	Source_name string `json:"source_name"`
 }
-func (u Package) TableName() string {
-	fmt.Println("package:",u.VersionId)
-	if u.VersionId == "camel" {
-		return "camel_packages"
-	} else {
-		return "eagle_packages"
-	}
+
+type PrePackageList []*PrePackage
+
+func (PrePackageList) TableName() string {
+	return "packages"
+}
+
+type Package struct {
+	Id            int `gorm:"primary_key" json:"id"` //  unique key
+	Dist_id       int `json:"dist_id"`
+	Package_id    int `json:"package_id"`
+	Pre_installed int `json:"pre_installed"`
+}
+
+func (Package) TableName() string {
+	return "dist-packages"
 }
 
 // PackageList package list
@@ -57,12 +63,14 @@ func IsSourceExists(source, dbVersion string) bool {
 		return false
 	}
 
-	var infos PackageList
-	err := handler.Model(&Package{}).Where("`source` = ?", source).Find(&infos).Error
+	//var infos PackageList
+	var preinfo PrePackageList
+	err := handler.Model(&PrePackage{}).Where("`source_name` = ?", source).Find(&preinfo).Error
+	//err := handler.Model(&Package{}).Where("`source` = ?", source).Find(&infos).Error 
 	if err != nil {
 		return false
 	}
-	if len(infos) == 0 {
+	if len(preinfo) == 0 {
 		return false
 	}
 	return true

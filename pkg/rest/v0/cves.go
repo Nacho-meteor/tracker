@@ -21,32 +21,30 @@ func getCVEList(c *gin.Context) {
 	if len(pkg) != 0 {
 		params["package"] = pkg
 	}
-	score:=c.Query("score")
-	if len(score) !=0{
-		params["score"]=score
+
+	eff := c.Query("effect")
+	if len(eff) != 0 {
+		params["effect"] = "%" + eff + "%"
+	} 
+
+	score := c.Query("score")
+	if len(score) != 0 {
+		params["score"] = score
 	}
 
-	exclude_package:=c.Query("ex_pkg")
-	if len(exclude_package) !=0{
-		params["ex_pkg"]=exclude_package
+	exclude_package := c.Query("ex_pkg")
+	if len(exclude_package) != 0 {
+		params["ex_pkg"] = exclude_package
 	}
-	remote := c.Query("remote")
-	if len(remote) != 0 {
-		params["remote"] = remote
-	}
+
 	preInstalled := c.Query("pre_installed")
 	if preInstalled == "true" {
 		params["pre_installed"] = true
 	} else if preInstalled == "false" {
 		params["pre_installed"] = false
 	}
-	archived := c.Query("archived")
-	if archived == "true" {
-		params["archived"] = true
-	} else if archived == "false" {
-		params["archived"] = false
-	}
-	sort := c.DefaultQuery("sort","true")
+
+	sort := c.DefaultQuery("sort", "true")
 	if len(sort) != 0 {
 		if db.ValidColumn(sort) {
 			params["sort"] = sort
@@ -76,6 +74,7 @@ func getCVEList(c *gin.Context) {
 		return
 	}
 	infos, total, err := cve.QueryCVEList(params, (page-1)*count, count, version)
+	fmt.Println(infos, total, err)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -100,6 +99,27 @@ func getCVE(c *gin.Context) {
 	}
 
 	info, err := db.NewCVE(id, version)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, info)
+}
+
+func getTotal(c *gin.Context) {
+	total := c.Param("total")
+	version := c.Param("version")
+	if len(total) == 0 || len(version) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid version",
+		})
+		return
+	}
+
+	info, err := db.NewTotal(version)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),

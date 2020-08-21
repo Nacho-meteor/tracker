@@ -69,6 +69,7 @@ func (v *Version) Delete() error {
 func QueryVersionList() (VersionList, error) {
 	var verList VersionList
 	err := db.Find(&verList).Error
+	
 	if err != nil {
 		return nil, err
 	}

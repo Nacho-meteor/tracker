@@ -12,7 +12,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
 // Route start gin router
 func Route(addr string, debug bool) error {
 	if !debug {
@@ -32,6 +31,9 @@ func Route(addr string, debug bool) error {
 	cves.GET("/:version", getCVEList)
 	cves.GET("/:version/:id", getCVE)
 	cves.PATCH("/:version/:id", checkAccessToken, patchCVE)
+
+	total := v0.Group("total")
+	total.GET("/:version/:total", getTotal) 
 
 	versions := v0.Group("versions")
 	versions.POST("", checkAccessToken, createVersion)
@@ -70,18 +72,28 @@ func checkAccessToken(c *gin.Context) {
 func checkUserAccess(userName string) bool {
 	var checkUser bool
 	switch userName {
-	case "liuyong":checkUser=true
-	case "liuxin":checkUser=true
-	case "zhouzilong":checkUser=true
-	case "huangyong":checkUser=true
-	case "tuqinggang":checkUser=true
-	case "yanbowen":checkUser=true
-	case "guoxinrui":checkUser=true
-	case "maaiguo":checkUser=true
-	case "suchao":checkUser=true
-	case "zhushaotang":checkUser=true
+	case "liuyong":
+		checkUser = true
+	case "liuxin":
+		checkUser = true
+	case "zhouzilong":
+		checkUser = true
+	case "huangyong":
+		checkUser = true
+	case "tuqinggang":
+		checkUser = true
+	case "yanbowen":
+		checkUser = true
+	case "guoxinrui":
+		checkUser = true
+	case "maaiguo":
+		checkUser = true
+	case "suchao":
+		checkUser = true
+	case "zhushaotang":
+		checkUser = true
 	default:
-		checkUser=false
+		checkUser = false
 	}
 	return checkUser
 }
@@ -97,9 +109,9 @@ func login(c *gin.Context) {
 		})
 		return
 	}
-	checkUser:=checkUserAccess(data.Username)
-	if !checkUser{
-		c.String(403," \n user : "+data.Username+" don't have the access \n")
+	checkUser := checkUserAccess(data.Username)
+	if !checkUser {
+		c.String(403, " \n user : "+data.Username+" don't have the access \n")
 		return
 	}
 	ldapc := config.GetConfig("./configs/config.yaml").LDAP

@@ -43,6 +43,7 @@ func fetchDebian(c *gin.Context) {
 	}
 
 	infos, err := fetcher.Fetch(verInfo.ReleaseURL, body.Filters)
+	fmt.Println(body.Filters)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -50,7 +51,7 @@ func fetchDebian(c *gin.Context) {
 		return
 	}
 
-	go func(cveList db.DebianCVEList) {
+	go func(cveList db.CVEList) {
 		var list db.CVEList
 		var scoreList db.CVEScoreList
 		fmt.Println("Debian cve len:", len(cveList))
@@ -64,9 +65,11 @@ func fetchDebian(c *gin.Context) {
 				list = db.CVEList{}
 			}
 			var cve = db.CVE{
-				DebianCVE:    *info,
-				Status:       db.CVEStatusUnprocessed,
-				PreInstalled: db.IsSourceExists(info.Package, version),
+				//				DebianCVE:    *info,
+				Cve_id:        info.Cve_id,
+				Package:       info.Package,
+				Status:        db.CVEStatusUnprocessed,
+				Pre_installed: db.IsSourceExists(info.Package, version),
 			}
 			list = append(list, &cve)
 
@@ -78,7 +81,7 @@ func fetchDebian(c *gin.Context) {
 				}
 				scoreList = db.CVEScoreList{}
 			}
-			score, err := fecthNVDScore(info.ID)
+			score, err := fecthNVDScore(info.Cve_id)
 			if err != nil || score == nil {
 				continue
 			}
@@ -210,7 +213,7 @@ func fetchScore(c *gin.Context) {
 				if info.Score > 0 {
 					continue
 				}
-				score, err := fecthNVDScore(info.ID)
+				score, err := fecthNVDScore(info.Cve_id)
 				if err != nil || score == nil {
 					continue
 				}

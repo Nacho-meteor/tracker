@@ -16,7 +16,10 @@ func QueryCVEList(params map[string]interface{}, offset, count int,
 	if handler == nil {
 		return nil, 0, fmt.Errorf("No db handler found for version '%s'", version)
 	}
-	var sql = handler.Table((version+"_cves"))
+	var sql = handler.Table(("dist-cve")) //直接连接dist-cve
+	// if params["statistics"] != 0 {
+	// 	sql = TotalList(sql, params)
+	// } //统计
 	sql = addParamsToSQL(sql, params)
 	value, ok := params["sort"]
 	if ok {
@@ -33,7 +36,6 @@ func QueryCVEList(params map[string]interface{}, offset, count int,
 		sql = sql.Order("score desc")
 	}
 	//sql = sql.Where("package != ? and package != ?","linux","webkit2gtk")
-
 	var list db.CVEList
 	var total int64
 	sql.Count(&total)
@@ -63,30 +65,31 @@ func addParamsToSQL(sql *gorm.DB, params map[string]interface{}) *gorm.DB {
 	if len(params) == 0 {
 		return sql
 	}
-	score,ok:=params["score"]
+	score, ok := params["score"]
 	if ok {
-		scoreParam:=strings.Split(score.(string), "-")
-		if len(scoreParam) == 1{
-			sql = sql.Where("score = ? ",scoreParam[0])
+		scoreParam := strings.Split(score.(string), "-")
+		if len(scoreParam) == 1 {
+			sql = sql.Where("score = ? ", scoreParam[0])
 		} else if len(scoreParam) == 2 {
-			if scoreParam[0]> scoreParam[1]{
-				scoreParam[0],scoreParam[1]=scoreParam[1],scoreParam[0]
+			if scoreParam[0] > scoreParam[1] {
+				scoreParam[0], scoreParam[1] = scoreParam[1], scoreParam[0]
 			}
-			sql = sql.Where("score >= ? and score <= ?",scoreParam[0],scoreParam[1])
+			sql = sql.Where("score >= ? and score <= ?", scoreParam[0], scoreParam[1])
 		}
 	}
-	ex_pkg,ok:=params["ex_pkg"]
-	if ok && ex_pkg.(string)=="true"{
-		sql=sql.Where("package != ?","linux")
+	ex_pkg, ok := params["ex_pkg"]
+	if ok && ex_pkg.(string) == "true" {
+		sql = sql.Where("package != ?", "linux")
 	}
 	var availableList = []struct {
 		key     string
 		useLike bool
 	}{
 		{"package", true},
+		{"effect", true}, //影响范围
 		{"pre_installed", false},
-		{"archived", false},
-		{"remote", false},
+		//		{"archived", false}, //删除
+		//		{"remote", false},   //删除
 	}
 
 	for _, item := range availableList {
@@ -95,8 +98,7 @@ func addParamsToSQL(sql *gorm.DB, params map[string]interface{}) *gorm.DB {
 			if item.useLike {
 				compare = "LIKE"
 			}
-			sql = sql.Where(fmt.Sprintf("`%s` %s ?", item.key, compare),
-				v)
+			sql = sql.Where(fmt.Sprintf("`%s` %s ?", item.key, compare), v)
 		}
 	}
 	return addListParamsToSQL(sql, params)
@@ -108,7 +110,7 @@ func addListParamsToSQL(sql *gorm.DB, params map[string]interface{}) *gorm.DB {
 		column string
 	}{
 		{"status", "status"},
-		{"filters", "urgency"},
+		//		{"filters", "urgency"}, //删除
 	}
 	for _, info := range availableList {
 		values, ok := params[info.key]

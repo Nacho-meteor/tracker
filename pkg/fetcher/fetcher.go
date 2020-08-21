@@ -10,7 +10,7 @@ import (
 	"github.com/deepin-cve/tracker/pkg/db"
 )
 
-func Fetch(uri string, filterList []string) (db.DebianCVEList, error) {
+func Fetch(uri string, filterList []string) (db.CVEList, error) {
 	var values = make(url.Values)
 	values["filter"] = filterList
 	params := values.Encode()
@@ -31,24 +31,24 @@ func Fetch(uri string, filterList []string) (db.DebianCVEList, error) {
 		fmt.Println("No table exists")
 		return nil, fmt.Errorf("invalid uri: no table exists")
 	}
-	var cveList db.DebianCVEList
+	var cveList db.CVEList
 	tableElm.Find("tr").Each(func(rowIdx int, rowEle *goquery.Selection) {
 		// ignore header
-		var cve db.DebianCVE
+		var cve db.CVE
 		rowEle.Find("td").Each(func(cellIdx int, cellEle *goquery.Selection) {
 			switch cellIdx {
 			case 0:
 				cve.Package = cellEle.Text()
 			case 1:
-				cve.ID = cellEle.Text()
-			case 2:
-				cve.Urgency = cellEle.Text()
-			case 3:
-				cve.Remote = cellEle.Text()
+				cve.Cve_id = cellEle.Text()
+				// case 2:
+				// 	cve.Urgency = cellEle.Text()
+				// case 3:
+				// 	cve.Remote = cellEle.Text()
 			}
 		})
-		if len(cve.ID) != 0 {
-			cve.FixUrgency()
+		if len(cve.Cve_id) != 0 {
+			//	cve.FixUrgency()
 			cveList = append(cveList, &cve)
 		}
 	})
