@@ -47,6 +47,41 @@ func QueryCVEList(params map[string]interface{}, offset, count int,
 	return list, total, nil
 }
 
+func QueryUPList(params map[string]interface{}, offset, count int,
+	version string) (db.UPList, int64, error) {
+	handler := db.GetDBHandler(version)
+	if handler == nil {
+		return nil, 0, fmt.Errorf("No db handler found for version '%s'", version)
+	}
+	var sql = handler.Table(("upstream"))
+	//	sql = addParamsToSQL(sql, params)
+	var availableList = []struct {
+		key     string
+		useLike bool
+	}{
+		{"package", true},
+		{"cve_id", true},
+		{"status", false},
+	}
+	for _, item := range availableList {
+		if v, ok := params[item.key]; ok {
+			compare := "="
+			if item.useLike {
+				compare = "LIKE"
+			}
+			sql = sql.Where(fmt.Sprintf("`%s` %s ?", item.key, compare), v)
+		}
+	}
+	var up db.UPList
+	var total int64
+	sql.Count(&total)
+	err := sql.Offset(offset).Limit(count).Find(&up).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	return up, total, nil
+}
+
 // UpdateCVE modify cve info
 func UpdateCVE(id, version string, values map[string]interface{}) (*db.CVE, error) {
 	cve, err := db.NewCVE(id, version)

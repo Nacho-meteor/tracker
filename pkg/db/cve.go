@@ -65,6 +65,24 @@ func (CVE) TableName() string {
 // CVEList an array for CVE
 type CVEList []*CVE
 
+// Upstream
+type Upstream struct {
+	Cve_id          string `json:"cve_id"`
+	Package         string `json:"package"`
+	Status          string `json:"status"`
+	Urgency         string `json:"urgency"`
+	Description     string `json:"description"`
+	Package_version string `json:"package_version"`
+	Fixed_version   string `json:"fixed_version"`
+}
+
+func (Upstream) TableName() string {
+	return "upstream"
+}
+
+// UPList an array for Upstream
+type UPList []*Upstream
+
 // FixPackage fill package
 func (list CVEList) FixPackage() {
 	var prev string

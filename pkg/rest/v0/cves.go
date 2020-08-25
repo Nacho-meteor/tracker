@@ -25,7 +25,7 @@ func getCVEList(c *gin.Context) {
 	eff := c.Query("effect")
 	if len(eff) != 0 {
 		params["effect"] = "%" + eff + "%"
-	} 
+	}
 
 	score := c.Query("score")
 	if len(score) != 0 {
@@ -82,6 +82,46 @@ func getCVEList(c *gin.Context) {
 		return
 	}
 
+	c.Header("X-Current-Page", fmt.Sprint(page))
+	c.Header("X-Resource-Total", fmt.Sprint(total))
+	c.Header("X-Page-Size", fmt.Sprint(count))
+	c.JSON(http.StatusOK, infos)
+}
+
+func getUPList(c *gin.Context) {
+	var params = make(map[string]interface{})
+
+	pkg := c.Query("package")
+	if len(pkg) != 0 {
+		params["package"] = pkg
+	}
+	cve_id := c.Query("cve_id")
+	if len(cve_id) != 0 {
+		params["cve_id"] = cve_id
+	}
+	version := c.Param("version")
+	if len(version) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid version",
+		})
+		return
+	}
+	statusList := c.Query("status")
+	if len(statusList) != 0 {
+		params["status"] = strings.Split(statusList, ",")
+	}
+	pageStr := c.DefaultQuery("page", "1")
+	page, _ := strconv.Atoi(pageStr)
+	countStr := c.DefaultQuery("count", "15")
+	count, _ := strconv.Atoi(countStr)
+	infos, total, err := cve.QueryUPList(params, (page-1)*count, count, version)
+	fmt.Println(infos, total, err)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 	c.Header("X-Current-Page", fmt.Sprint(page))
 	c.Header("X-Resource-Total", fmt.Sprint(total))
 	c.Header("X-Page-Size", fmt.Sprint(count))

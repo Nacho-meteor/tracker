@@ -32,8 +32,12 @@ func Route(addr string, debug bool) error {
 	cves.GET("/:version/:id", getCVE)
 	cves.PATCH("/:version/:id", checkAccessToken, patchCVE)
 
+	upstream := v0.Group("upstream")
+	upstream.GET("/:version", getUPList)
+	//	upstream.Get("/:version", getUPList)
+
 	total := v0.Group("total")
-	total.GET("/:version/:total", getTotal) 
+	total.GET("/:version/:total", getTotal)
 
 	versions := v0.Group("versions")
 	versions.POST("", checkAccessToken, createVersion)

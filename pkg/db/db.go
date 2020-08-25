@@ -18,7 +18,7 @@ var (
 // Init init db
 func Init(host string, pwd_sql string) {
 	var err error
-	db, err = gorm.Open("mysql", "root:"+pwd_sql+"@tcp("+host+":3306)/new_cve?parseTime=true")
+	db, err = gorm.Open("mysql", "root:"+pwd_sql+"@tcp("+host+":32680)/new_cve?parseTime=true")
 	if err != nil {
 		panic(err)
 	}
@@ -80,6 +80,7 @@ func doSetDBHandler(version string) error {
 	db.AutoMigrate(&Package{})
 	db.AutoMigrate(&PrePackage{})
 	db.AutoMigrate(&CVEScore{})
+	db.AutoMigrate(&UPList{})
 	// TODO(jouyouyun): add to configuration
 	db.DB().SetMaxIdleConns(0)
 	db.DB().SetMaxOpenConns(100)
