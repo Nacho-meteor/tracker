@@ -67,13 +67,13 @@ type CVEList []*CVE
 
 // Upstream
 type Upstream struct {
-	Cve_id          string `json:"cve_id"`
-	Package         string `json:"package"`
-	Status          string `json:"status"`
-	Urgency         string `json:"urgency"`
-	Description     string `json:"description"`
-	Package_version string `json:"package_version"`
-	Fixed_version   string `json:"fixed_version"`
+	Cve_id        string `json:"cve_id"`
+	Package       string `json:"package"`
+	Status        string `json:"status"`
+	Urgency       string `json:"urgency"`
+	Description   string `json:"description"`
+	Pkg_version   string `json:"pkg_version"`
+	Fixed_version string `json:"fixed_version"`
 }
 
 func (Upstream) TableName() string {

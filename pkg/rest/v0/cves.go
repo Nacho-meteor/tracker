@@ -112,7 +112,7 @@ func getUPList(c *gin.Context) {
 	}
 	pageStr := c.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageStr)
-	countStr := c.DefaultQuery("count", "15")
+	countStr := c.DefaultQuery("count", "18")
 	count, _ := strconv.Atoi(countStr)
 	infos, total, err := cve.QueryUPList(params, (page-1)*count, count, version)
 	fmt.Println(infos, total, err)

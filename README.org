@@ -45,12 +45,10 @@
 
 #+BEGIN_SRC sql
 CREATE TABLE IF NOT EXISTS "packages" (
-    "package" varchar(255),
-    "source" varchar(255),
-    "version" varchar(255),
-    "architecture" varchar(255),
-    "source_version" varchar(255) ,
- PRIMARY KEY ("package"));
+    "id" int(10),
+    "source_name" varchar(255),
+    "name" varchar(255),
+ PRIMARY KEY ("id"));
 #+END_SRC
 
 **** =cves=
@@ -59,15 +57,19 @@ CREATE TABLE IF NOT EXISTS "packages" (
 
 #+BEGIN_SRC sql
 CREATE TABLE IF NOT EXISTS "cves" (
-    "id" varchar(255),
+    "cve_id" varchar(255),
     "package" varchar(255),
-    "urgency" varchar(255),
-    "remote" varchar(255),
+    "effect" varchar(255),
     "status" varchar(255),
-    "patch" varchar(255),
-    "description" varchar(255),
+    "description"  varchar(255),
+    "cvss"  int(10)
     "pre_installed" bool,
-    "archived" bool,
+    "fixed_version"  varchar(255),
+    "scope"  varchar(255),
+    "patch_loacl"  varchar(255),
+    "patch_upstream"  varchar(255),
+    "poc"  varchar(255),
+    "score"  float(255),
     "created_at" datetime,
     "updated_at" datetime,
     "deleted_at" datetime ,
@@ -85,19 +87,21 @@ CREATE TABLE IF NOT EXISTS "cves" (
 ** 接口
 
 #+BEGIN_SRC shell
-GET    /v0/logs
-POST   /v0/session/login
-DELETE /v0/session/logout
-GET    /v0/cves/:version
-GET    /v0/cves/:version/:id
-PATCH  /v0/cves/:version/:id
-POST   /v0/versions
-GET    /v0/versions
-GET    /v0/versions/:version
-PATCH  /v0/versions/:version
-DELETE /v0/versions/:version
-POST   /v0/tools/debian/:version
-POST   /v0/tools/package/:version
+GET    /v0/logs                  
+POST   /v0/session/login        
+DELETE /v0/session/logout        
+GET    /v0/cves/:version         
+GET    /v0/cves/:version/:id     
+PATCH  /v0/cves/:version/:id     
+GET    /v0/upstream/:version     
+GET    /v0/total/:version/:total 
+POST   /v0/versions              
+GET    /v0/versions              
+GET    /v0/versions/:version     
+PATCH  /v0/versions/:version     
+DELETE /v0/versions/:version     
+POST   /v0/tools/debian/:version 
+POST   /v0/tools/score/:version 
 #+END_SRC
 
 其中除了 =GET= 接口不需要 =token= ，其它接口都需要在 =HTTP Header= 中设置 =Access-Token= ， =token= 通过 =LDAP= 登录后获取。
