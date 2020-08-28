@@ -29,6 +29,14 @@ func Init(host string, pwd_sql string) {
 	db.DB().SetMaxIdleConns(0)
 	db.DB().SetMaxOpenConns(100)
 	var verList VersionList
+	ver := &Version{
+		Version:       "eagle",
+		DebianVersion: "buster",
+		TrackerURL:    "https://security-tracker.debian.org/tracker",
+		ReleaseURL:    "https://security-tracker.debian.org/tracker/status/release/stable",
+		DebianSeq:     10,
+	}
+	db.Create(ver)
 	err = db.Find(&verList).Error
 	if err != nil {
 		panic(err)
