@@ -1,7 +1,10 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"time"
 )
 
@@ -150,6 +153,40 @@ func NewCVE(id, version string) (*CVE, error) {
 		return nil, err
 	}
 	return &cve, nil
+}
+
+func DeleteUpstream(version string) (int, error) {
+	handler := GetDBHandler(version)
+	if handler == nil {
+		return 0, fmt.Errorf("Not found db hander for version '%s'", version)
+	}
+	var UP UPList
+	num := len(UP)
+	handler.Table(("upstream")).Delete(&UP)
+	return num, nil
+}
+
+func UpdateUpstream(version string) (int, error) {
+	handler := GetDBHandler(version)
+	if handler == nil {
+		return 0, fmt.Errorf("Not found db hander for version '%s'", version)
+	}
+
+	var UP UPList
+	jsonFile, err := os.Open("./upstream/intocve")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer jsonFile.Close()
+
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	json.Unmarshal([]byte(byteValue), &UP)
+	// fmt.Println(*UP[1])
+	num := len(UP)
+	for i := 0; i < num; i++ {
+		handler.Save(&UP[i])
+	}
+	return num, err
 }
 
 //Total

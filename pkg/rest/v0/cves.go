@@ -170,6 +170,20 @@ func getTotal(c *gin.Context) {
 	c.JSON(http.StatusOK, info)
 }
 
+func postReset(c *gin.Context) {
+	update := c.Param("update")
+	version := c.Param("version")
+	if len(version) == 0 || len(update) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid version",
+		})
+		return
+	}
+	db.DeleteUpstream(version)
+	db.UpdateUpstream(version)
+	c.String(http.StatusAccepted, "")
+}
+
 func patchCVE(c *gin.Context) {
 	id := c.Param("id")
 	version := c.Param("version")

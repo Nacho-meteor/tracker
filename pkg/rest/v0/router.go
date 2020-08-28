@@ -34,6 +34,7 @@ func Route(addr string, debug bool) error {
 
 	upstream := v0.Group("upstream")
 	upstream.GET("/:version", getUPList)
+	upstream.POST("/:version/:update", checkAccessToken, postReset)
 	//	upstream.Get("/:version", getUPList)
 
 	total := v0.Group("total")
