@@ -72,7 +72,6 @@ func getScoreFromCVSS3(dom *goquery.Document, id string) (*db.CVEScore, error) {
 			}
 		}
 	}
-	//	score.ScoreSeverity = scores[1]
 	return &score, nil
 }
 
@@ -89,7 +88,6 @@ func getScoreFromCVSS2(dom *goquery.Document, id string) (*db.CVEScore, error) {
 	if err != nil {
 		return nil, err
 	}
-	//	score.ScoreSeverity = v
 
 	return &score, nil
 }

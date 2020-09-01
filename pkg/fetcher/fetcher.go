@@ -41,14 +41,9 @@ func Fetch(uri string, filterList []string) (db.CVEList, error) {
 				cve.Package = cellEle.Text()
 			case 1:
 				cve.Cve_id = cellEle.Text()
-				// case 2:
-				// 	cve.Urgency = cellEle.Text()
-				// case 3:
-				// 	cve.Remote = cellEle.Text()
 			}
 		})
 		if len(cve.Cve_id) != 0 {
-			//	cve.FixUrgency()
 			cveList = append(cveList, &cve)
 		}
 	})

@@ -1,10 +1,10 @@
 package db
 
 import (
-	"sync"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"sync"
 )
 
 var (
@@ -16,9 +16,9 @@ var (
 )
 
 // Init init db
-func Init(host string, pwd_sql string) {
+func Init(host string,pwd_sql string) {
 	var err error
-	db, err = gorm.Open("mysql", "root:"+pwd_sql+"@tcp("+host+":32680)/new_cve?parseTime=true")
+	db, err = gorm.Open("mysql","root:"+pwd_sql+"@tcp("+host+":32680)/new_cve?parseTime=true")
 	if err != nil {
 		panic(err)
 	}
@@ -36,7 +36,7 @@ func Init(host string, pwd_sql string) {
 		ReleaseURL:    "https://security-tracker.debian.org/tracker/status/release/stable",
 		DebianSeq:     10,
 	}
-	db.Create(ver)
+	db.Save(ver)
 	err = db.Find(&verList).Error
 	if err != nil {
 		panic(err)
