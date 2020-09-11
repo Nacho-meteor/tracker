@@ -1,10 +1,10 @@
 package db
 
 import (
+	"sync"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"sync"
 )
 
 var (
@@ -16,9 +16,9 @@ var (
 )
 
 // Init init db
-func Init(host string,pwd_sql string) {
+func Init(host string, pwd_sql string) {
 	var err error
-	db, err = gorm.Open("mysql","root:"+pwd_sql+"@tcp("+host+":32680)/new_cve?parseTime=true")
+	db, err = gorm.Open("mysql", "root:"+pwd_sql+"@tcp("+host+":32680)/new_cve?parseTime=true")
 	if err != nil {
 		panic(err)
 	}
@@ -30,13 +30,16 @@ func Init(host string,pwd_sql string) {
 	db.DB().SetMaxOpenConns(100)
 	var verList VersionList
 	ver := &Version{
-		Version:       "eagle",
+		Version:       "v20",
 		DebianVersion: "buster",
 		TrackerURL:    "https://security-tracker.debian.org/tracker",
 		ReleaseURL:    "https://security-tracker.debian.org/tracker/status/release/stable",
 		DebianSeq:     10,
 	}
 	db.Save(ver)
+	if !db.HasTable(&Linux{}) {
+		db.CreateTable(&Linux{})
+	}
 	err = db.Find(&verList).Error
 	if err != nil {
 		panic(err)
@@ -89,6 +92,7 @@ func doSetDBHandler(version string) error {
 	db.AutoMigrate(&PrePackage{})
 	db.AutoMigrate(&CVEScore{})
 	db.AutoMigrate(&UPList{})
+	db.AutoMigrate(&Linux_core{})
 	// TODO(jouyouyun): add to configuration
 	db.DB().SetMaxIdleConns(0)
 	db.DB().SetMaxOpenConns(100)

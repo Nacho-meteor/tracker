@@ -74,7 +74,6 @@ func getCVEList(c *gin.Context) {
 		return
 	}
 	infos, total, err := cve.QueryCVEList(params, (page-1)*count, count, version)
-	fmt.Println(infos, total, err)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -82,6 +81,54 @@ func getCVEList(c *gin.Context) {
 		return
 	}
 
+	c.Header("X-Current-Page", fmt.Sprint(page))
+	c.Header("X-Resource-Total", fmt.Sprint(total))
+	c.Header("X-Page-Size", fmt.Sprint(count))
+	c.JSON(http.StatusOK, infos)
+}
+
+func getLinuxList(c *gin.Context) {
+	var params = make(map[string]interface{})
+	cve_id := c.Query("cve_id")
+	if len(cve_id) != 0 {
+		params["cve_id"] = cve_id
+	}
+	edition := c.Query("edition")
+	if len(edition) != 0 {
+		params["edition"] = edition
+	}
+	score := c.Query("score")
+	if len(score) != 0 {
+		params["score"] = score
+	}
+	version := c.Param("version")
+	if len(version) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid version",
+		})
+		return
+	}
+	sort := c.DefaultQuery("sort", "true")
+	if len(sort) != 0 {
+		if db.ValidColumn(sort) {
+			params["sort"] = sort
+		}
+	}
+	statusList := c.Query("status")
+	if len(statusList) != 0 {
+		params["status"] = strings.Split(statusList, ",")
+	}
+	pageStr := c.DefaultQuery("page", "1")
+	page, _ := strconv.Atoi(pageStr)
+	countStr := c.DefaultQuery("count", "18")
+	count, _ := strconv.Atoi(countStr)
+	infos, total, err := cve.QueryLinuxList(params, (page-1)*count, count, version)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 	c.Header("X-Current-Page", fmt.Sprint(page))
 	c.Header("X-Resource-Total", fmt.Sprint(total))
 	c.Header("X-Page-Size", fmt.Sprint(count))
@@ -115,7 +162,6 @@ func getUPList(c *gin.Context) {
 	countStr := c.DefaultQuery("count", "18")
 	count, _ := strconv.Atoi(countStr)
 	infos, total, err := cve.QueryUPList(params, (page-1)*count, count, version)
-	fmt.Println(infos, total, err)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -224,6 +270,66 @@ func patchCVE(c *gin.Context) {
 	}
 
 	info, err := cve.UpdateCVE(id, version, values)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	insertLog(&db.Log{
+		Operator:    c.GetString("username"),
+		Action:      db.LogActionPatchCVE,
+		Target:      id,
+		Description: db.LogActionPatchCVE.String() + ": " + id,
+		Content:     toString(&values),
+	})
+
+	c.JSON(http.StatusOK, info)
+}
+
+func patchLinux(c *gin.Context) {
+	id := c.Param("id")
+	version := c.Param("version")
+	edition := c.Param("edition")
+	if len(id) == 0 || len(version) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid version",
+		})
+		return
+	}
+	// fmt.Println(edition)
+	var values = make(map[string]interface{})
+	err := c.ShouldBind(&values)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	if len(values) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "no data has bind",
+		})
+		return
+	}
+	// if len(edition) != 0 {
+	// 	params["edition"] = edition
+	// }
+	// check status
+	value, ok := values["status"]
+	if ok {
+		status, ok := value.(string)
+		if ok && len(status) != 0 {
+			if !db.ValidStatus(status) {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "invalid status: " + status,
+				})
+				return
+			}
+		}
+	}
+	info, err := cve.UpdateLinux(edition, id, version, values)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
