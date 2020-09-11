@@ -44,6 +44,7 @@ func FetchScore(url string) (*db.CVEScore, error) {
 	return getScoreFromCVSS2(dom, filepath.Base(url))
 }
 
+
 func getScoreFromCVSS3(dom *goquery.Document, id string) (*db.CVEScore, error) {
 	var score = db.CVEScore{ID: id, CVSS: "3.0"}
 	v, err := getElementText(dom, "a[data-testid=vuln-cvss3-panel-score]")

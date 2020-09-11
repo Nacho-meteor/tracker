@@ -4,10 +4,17 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"log"
+	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/deepin-cve/tracker/pkg/db"
+)
+
+const (
+	nvdPrefix = "https://nvd.nist.gov/vuln/detail/"
 )
 
 func Fetch(uri string, filterList []string) (db.CVEList, error) {
@@ -90,4 +97,70 @@ func FetchFromFile(filename string) {
 			fmt.Println(ii, ", data:", rows)
 		})
 	})
+}
+
+func Fetch_linux(url, edition string) (db.Linux_core, error) {
+	url = url + edition + "/" + edition + "_security.txt"
+	res, err := http.Get(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+	}
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var List db.Linux_core
+	var flag, sign int
+	var vb, vs string
+	doc.Find("tr").Each(func(i int, s *goquery.Selection) {
+		var core db.Linux
+		s.Find("td").Each(func(cellIdx int, cellEle *goquery.Selection) {
+			band := cellEle.Text()
+			if strings.Contains(band, "CVEs fixed in") {
+				vb = strings.Replace(band, "CVEs fixed in ", "", -1)
+				vb = strings.Replace(vb, ":", "", -1)
+				vs = "fixed"
+				if strings.Contains(vb, "92") {
+					sign = 1
+				}
+				if sign == 1 {
+					vs = "unprocessed"
+				}
+				if edition != "4.19" {
+					vs = "unprocessed"
+				}
+				flag = 1
+			}
+			if strings.Contains(band, "Outstanding") {
+				vb = " "
+				flag = 2
+			}
+			if flag == 0 {
+				if strings.Contains(band, " ") == true {
+					core.Package = "linux"
+					core.Cve_id = strings.Replace(band[1:17], ":", "", -1)
+					core.Cve_id = strings.Replace(core.Cve_id, " ", "", -1)
+					core.Upstream_fixed_version = vb
+					core.Status = vs
+					if core.Status == "fixed" {
+						core.Locale_fixed_version = vb
+					}
+					core.Edition = edition
+					if !strings.Contains(vb, " ") {
+						core.Patch_upstream = strings.Replace(band[17:58], " ", "", -1)
+					}
+				}
+			}
+			flag = 0
+			if len(core.Cve_id) != 0 {
+				List = append(List, &core)
+			}
+		})
+	})
+	return List, nil
 }

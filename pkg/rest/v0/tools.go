@@ -2,16 +2,20 @@ package v0
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/deepin-cve/tracker/pkg/db"
 	"github.com/deepin-cve/tracker/pkg/fetcher"
 	"github.com/gin-gonic/gin"
 )
 
 const (
-	nvdPrefix = "https://nvd.nist.gov/vuln/detail/"
+	nvdPrefix       = "https://nvd.nist.gov/vuln/detail/"
+	linuxkernelcves = "https://github.com/nluedtke/linux_kernel_cves/blob/master/data/"
 )
 
 func fetchDebian(c *gin.Context) {
@@ -109,6 +113,49 @@ func fetchDebian(c *gin.Context) {
 		Action:      db.LogActionFecthDebian,
 		Description: strings.Join(body.Filters, ","),
 		Content:     toString(&body),
+	})
+
+	c.String(http.StatusAccepted, "")
+}
+
+func fetchLinux(c *gin.Context) {
+	var params = make(map[string]interface{})
+	version := c.Param("version")
+	if len(version) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid version",
+		})
+		return
+	}
+	var verInfo = db.Version{Version: version}
+	err := verInfo.Get()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	edition := c.Query("edition")
+	if len(edition) != 0 {
+		params["edition"] = edition
+	}
+	infos, err := fetcher.Fetch_linux(linuxkernelcves, edition)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	handler := db.GetDBHandler(version)
+	for i := 0; i < len(infos); i++ {
+		infos[i].Score, infos[i].Cvss, _ = fecthNVDCore(infos[i].Cve_id)
+		handler.Save(&infos[i])
+	}
+	insertLog(&db.Log{
+		Operator:    c.GetString("username"),
+		Action:      db.LogActionFecthDebian,
+		Description: "update linux list",
+		Content:     c.GetString("username"),
 	})
 
 	c.String(http.StatusAccepted, "")
@@ -253,4 +300,42 @@ func fecthNVDScore(id string) (*db.CVEScore, error) {
 		return nil, err
 	}
 	return score, nil
+}
+
+func fecthNVDCore(id string) (float64, int, error) {
+	res, err := http.Get(nvdPrefix + id)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+	}
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var vb string
+	var score float64
+	cvss := 1
+	var flag int
+	doc.Find("span").Each(func(i int, s *goquery.Selection) {
+		s.Find("span").Each(func(cellIdx int, cellEle *goquery.Selection) {
+			band := cellEle.Find("a").Text()
+			if strings.Contains(band, "HIGH") || strings.Contains(band, "MEDIUM") || strings.Contains(band, "CRITICAL") || strings.Contains(band, "LOW") {
+				cvss += 1
+				if flag == 0 {
+					vb = strings.Replace(band[:4], " ", "", -1)
+					score, _ = strconv.ParseFloat(vb, 64)
+					flag = 1
+				}
+			}
+		})
+	})
+	if cvss >= 4 {
+		cvss = 3
+	} else if cvss == 1 {
+		cvss = 0
+	}
+	return score, cvss, nil
 }

@@ -86,6 +86,35 @@ func (Upstream) TableName() string {
 // UPList an array for Upstream
 type UPList []*Upstream
 
+type Sign struct {
+	ID        uint      `gorm:"primary_key" json:"-"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type Linux struct {
+	Cve_id                 string  `json:"cve_id"`
+	Package                string  `json:"package"`
+	Status                 string  `json:"status"`
+	Cvss                   int     `json:"cvss"`
+	Score                  float64 `json:"score"`
+	Description            string  `json:"description"`
+	Upstream_fixed_version string  `json:"upstream_fixed_version"`
+	Locale_fixed_version   string  `json:"locale_fixed_version"`
+	Patch_local            string  `json:"patch_local"`
+	Patch_upstream         string  `json:"patch_upstream"`
+	Edition                string  `json:"edition"`
+	Sign
+	// CreatedAt              time.Time `json:"created_at"`
+	// UpdatedAt              time.Time `json:"updated_at"`
+}
+
+func (Linux) TableName() string {
+	return "linux"
+}
+
+type Linux_core []*Linux
+
 // FixPackage fill package
 func (list CVEList) FixPackage() {
 	var prev string
@@ -147,12 +176,25 @@ func NewCVE(id, version string) (*CVE, error) {
 	}
 
 	var cve CVE
-	fmt.Println(id)
 	err := handler.Table(("dist-cve")).Where("`cve_id` = ?", id).First(&cve).Error //修改
 	if err != nil {
 		return nil, err
 	}
 	return &cve, nil
+}
+
+func NewLinux(edition, id, version string) (*Linux, error) {
+	handler := GetDBHandler(version)
+	if handler == nil {
+		return nil, fmt.Errorf("Not found db hander for version '%s'", version)
+	}
+
+	var linux Linux
+	err := handler.Table(("linux")).Where("`cve_id` = ? and `edition` = ?", id, edition).First(&linux).Error
+	if err != nil {
+		return nil, err
+	}
+	return &linux, nil
 }
 
 func DeleteUpstream(version string) (int, error) {
@@ -195,7 +237,7 @@ func NewTotal(version string) (*Total, error) {
 	if handler == nil {
 		return nil, fmt.Errorf("Not found db hander for version '%s'", version)
 	}
-
+	handler = handler.Table(("dist-cve")).Where("`pre_installed` = ?", "true")
 	var totallist Total
 	handler.Table(("dist-cve")).Where("`score` <= 4 and `status` = ?", "unprocessed").Count(&totallist.Unprocessed.Low)
 	handler.Table(("dist-cve")).Where("`score` > 4 and `score` < 7 and `status` = ? ", "unprocessed").Count(&totallist.Unprocessed.Medium)
@@ -231,6 +273,14 @@ func (cve *CVE) Update(diff map[string]interface{}, version string) error {
 		return fmt.Errorf("Not found db hander for version '%s'", version)
 	}
 	return handler.Model(cve).Updates(diff).Error
+}
+
+func (linux *Linux) Update(diff map[string]interface{}, version string) error {
+	handler := GetDBHandler(version)
+	if handler == nil {
+		return fmt.Errorf("Not found db hander for version '%s'", version)
+	}
+	return handler.Model(linux).Updates(diff).Error
 }
 
 // ValidStatus validity status whether right

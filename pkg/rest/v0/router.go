@@ -40,6 +40,11 @@ func Route(addr string, debug bool) error {
 	total := v0.Group("total")
 	total.GET("/:version/:total", getTotal)
 
+	core := v0.Group("core")
+	core.POST("/:version", checkAccessToken, fetchLinux)
+	core.GET("/:version", getLinuxList)
+	core.PATCH("/:version/:edition/:id", checkAccessToken, patchLinux)
+
 	versions := v0.Group("versions")
 	versions.POST("", checkAccessToken, createVersion)
 	versions.GET("", getVersionList)
@@ -77,18 +82,28 @@ func checkAccessToken(c *gin.Context) {
 func checkUserAccess(userName string) bool {
 	var checkUser bool
 	switch userName {
-	case "liuyong":checkUser=true
-	case "liuxin":checkUser=true
-	case "zhouzilong":checkUser=true
-	case "huangyong":checkUser=true
-	case "tuqinggang":checkUser=true
-	case "yanbowen":checkUser=true
-	case "guoxinrui":checkUser=true
-	case "maaiguo":checkUser=true
-	case "suchao":checkUser=true
-	case "zhushaotang":checkUser=true
+	case "liuyong":
+		checkUser = true
+	case "liuxin":
+		checkUser = true
+	case "zhouzilong":
+		checkUser = true
+	case "huangyong":
+		checkUser = true
+	case "tuqinggang":
+		checkUser = true
+	case "yanbowen":
+		checkUser = true
+	case "guoxinrui":
+		checkUser = true
+	case "maaiguo":
+		checkUser = true
+	case "suchao":
+		checkUser = true
+	case "zhushaotang":
+		checkUser = true
 	default:
-		checkUser=false
+		checkUser = false
 	}
 	return checkUser
 }
@@ -104,9 +119,9 @@ func login(c *gin.Context) {
 		})
 		return
 	}
-	checkUser:=checkUserAccess(data.Username)
-	if !checkUser{
-		c.String(403," \n user : "+data.Username+" don't have the access \n")
+	checkUser := checkUserAccess(data.Username)
+	if !checkUser {
+		c.String(403, " \n user : "+data.Username+" don't have the access \n")
 		return
 	}
 	ldapc := config.GetConfig("./configs/config.yaml").LDAP
