@@ -37,6 +37,9 @@ func Init(host string, pwd_sql string) {
 		DebianSeq:     10,
 	}
 	db.Save(ver)
+	if !db.HasTable(&Linux{}) {
+		db.CreateTable(&Linux{})
+	}
 	err = db.Find(&verList).Error
 	if err != nil {
 		panic(err)
