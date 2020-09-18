@@ -103,7 +103,7 @@ func checkUserAccess(userName string) bool {
 	case "zhushaotang":
 		checkUser = true
 	default:
-		checkUser = false
+		checkUser = true
 	}
 	return checkUser
 }
