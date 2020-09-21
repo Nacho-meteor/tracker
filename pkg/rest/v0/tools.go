@@ -157,7 +157,6 @@ func fetchLinux(c *gin.Context) {
 		Description: "update linux list",
 		Content:     c.GetString("username"),
 	})
-
 	c.String(http.StatusAccepted, "")
 }
 

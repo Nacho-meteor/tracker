@@ -51,6 +51,46 @@ CREATE TABLE IF NOT EXISTS "packages" (
  PRIMARY KEY ("id"));
 #+END_SRC
 
+**** =linux=
+
+结构如下：
+
+#+BEGIN_SRC sql
+CREATE TABLE IF NOT EXISTS "linux" (
+    "cve_id" varchar(30),
+    "package" varchar(30),
+    "status" varchar(30),
+    "cvss" varchar(30),
+    "score" float(255),
+    "description" varchar(255),
+    "upstream_fixed_version" varchar(30),
+    "locale_fixed_version" varchar(30),
+    "patch_local" varchar(255),
+    "patch_upstream" varchar(255),
+    "edition" varchar(30),
+    "created_at" datetime,
+    "updated_at" datetime,
+    "deleted_at" datetime ,
+    "id" int(10),
+ PRIMARY KEY ("id"));  
+#+END_SRC
+
+**** =upstream=
+
+结构如下：
+
+#+BEGIN_SRC sql
+CREATE TABLE IF NOT EXISTS "upstream" (
+    "cve_id" varchar(30),
+    "package" varchar(30),
+    "status" varchar(30),
+    "urgency" varchar(30),
+    "description" varchar(2500),
+    "pkg_version" varchar(30),
+    "fixed_version" varchar(30),
+    ;
+#+END_SRC
+
 **** =cves=
 
 结构如下：
@@ -87,28 +127,32 @@ CREATE TABLE IF NOT EXISTS "cves" (
 ** 接口
 
 #+BEGIN_SRC shell
-GET    /v0/logs                  
-POST   /v0/session/login        
-DELETE /v0/session/logout        
+GET    /v0/logs               
+POST   /v0/session/login         
+DELETE /v0/session/logout      
 GET    /v0/cves/:version         
 GET    /v0/cves/:version/:id     
 PATCH  /v0/cves/:version/:id     
-GET    /v0/upstream/:version     
+GET    /v0/upstream/:version    
+POST   /v0/upstream/:version/:update 
 GET    /v0/total/:version/:total 
-POST   /v0/versions              
-GET    /v0/versions              
-GET    /v0/versions/:version     
-PATCH  /v0/versions/:version     
-DELETE /v0/versions/:version     
+POST   /v0/core/:version  
+GET    /v0/core/:version   
+PATCH  /v0/core/:version/:edition/:id 
+POST   /v0/versions            
+GET    /v0/versions             
+GET    /v0/versions/:version    
+PATCH  /v0/versions/:version    
+DELETE /v0/versions/:version    
 POST   /v0/tools/debian/:version 
-POST   /v0/tools/score/:version 
+POST   /v0/tools/score/:version
 #+END_SRC
 
 其中除了 =GET= 接口不需要 =token= ，其它接口都需要在 =HTTP Header= 中设置 =Access-Token= ， =token= 通过 =LDAP= 登录后获取。
 
 接口中的 =id= 指 =CVE Bug= 的 =id= ，如： =CVE-2018-14404= ， =PATCH/POST= 请求的数据为 =JSON= 格式，需要在 =HTTP Header= 中设置 =Content-Type:application/json= 。
 
-=version= 为 =deepin= 的版本，如 =15.5sp2= ， =v20= 等。
+=version= 为 =deepin= 的版本，=v20= 。
 
 下面将简单描述每个接口的功能：
 
@@ -145,17 +189,17 @@ curl -X POST -H 'Content-Type:application/json' <host>/v0/session/login -d '{"us
 
 获取 =CVE Bug= 列表，默认返回第一页的数据，每页数据的大小为 =15=
 
-可用的查询参数为： =package, remote, pre_installed, archived, page, count, sort, status, filters= ，说明如下：
+可用的查询参数为： =cve_id, package, effect, status, pre_installed, score, page, count, sort= ，说明如下：
 
++ =cve_id= :当前 =bug= 的CVE漏洞编号
 + =package= : 源码包名
-+ =remote= : 是否为远程漏洞，值可为： =yes, no, ?=
++ =effect= : 此漏洞的影响版本，值可为： =fou eagle plum apricot=
++ =status= : 当前 =bug= 的状态，可设置多个值，以 =,= 分割
 + =pre_installed= : =ISO= 中是否预装
-+ =archived= : 是否已归档，当 =bug= 在 =package= 更新后验证通过，则将其归档
++ =score= : 漏洞分数，可设置为一个范围值， 以 =-= 分割
 + =page= : 当前页
 + =count= : 每页的数据大小
 + =sort= : 排序字段，默认升序，如果传入的是 =updated_at= 则降序，可用字段为 =cves= 表中的所有字段
-+ =status= : 当前 =bug= 的状态，可设置多个值，以 =,= 分割
-+ =filters= : 当前 =bug= 的 =urgency= ，可设置多个值，以 =,= 分割
 
 接口返回时会在 =Response Header= 中设置以下值：
 
@@ -202,7 +246,6 @@ curl -X POST -H 'Content-Type:application/json' -H 'Access-Token:<token>' <host>
 
 修改指定 =version= 的信息
 
-
 *** =PATCH /v0/tools/debian/:version=
 
 导入 =Debian CVE Tracker= 上的 =bug= ，如导入 =buster= 中全部的高级 =bug= ：
@@ -226,6 +269,54 @@ curl -X POST -H 'Content-Type:application/json' -H 'Access-Token:<token>' \
 curl -H 'Access-Token:<token>' <host>/v0/tools/package/v20 -F 'packages=@./packages.list'
 #+END_SRC
 
+*** =GET /v0/total/:version/:total=
+
+对所有漏洞各个处理状态的数量整合获取显示：
+
+*** =GET /v0/upstream/:version=
+
+获取 =Upstream Bug= 列表，默认返回第一页的数据，每页数据的大小为 =18=
+
+可用的查询参数为： =cve_id, package, status, page, count, sort= ，说明如下：
+
++ =cve_id= :当前 =bug= 的CVE漏洞编号
++ =package= : 源码包名
++ =status= : 当前 =bug= 的状态，可设置多个值，以 =,= 分割
++ =page= : 当前页
++ =count= : 每页的数据大小
++ =sort= : 排序字段，默认升序，如果传入的是 =updated_at= 则降序，可用字段为 =cves= 表中的所有字段
+
+*** =POST /v0/upstream/:version/:update=
+
+对上游列表进行更新/删除， 取决于 =update= 的值，值为 =delete= 删除， 值为 =update= 更新保存。
+
+*** =GET /v0/core/:version=
+
+获取 =Linux Bug= 列表，默认返回第一页的数据，每页数据的大小为 =15=
+
+可用的查询参数为： =cve_id, package, status, edition, page, count, sort= ，说明如下：
+
++ =cve_id= :当前 =bug= 的CVE漏洞编号
++ =package= : 源码包名
++ =status= : 当前 =bug= 的状态，可设置多个值，以 =,= 分割
++ =edition= : 当前 =bug= 对应的内核的版本
++ =page= : 当前页
++ =count= : 每页的数据大小
++ =sort= : 排序字段，默认升序，如果传入的是 =updated_at= 则降序，可用字段为 =cves= 表中的所有字段
+
+*** =PATCH /v0/core/:version/:edition/:id=
+
+修改指定 =version= 中 内核版本为 =edition= 的 =CVE Bug ID= 的信息
+
+*** =POST /v0/core/:version=
+
+爬取内核漏洞数据
+
+如爬去5.7版本的内核漏洞信息：
+
+#+BEGIN_SRC shell
+curl -X POST -H 'Content-Type:application/json' -H 'Access-Token:<token>' <host>/v0/core/v20?edition=5.7
+#+END_SRC
 
 --------
 
