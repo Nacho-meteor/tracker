@@ -139,18 +139,20 @@ func fetchLinux(c *gin.Context) {
 	if len(edition) != 0 {
 		params["edition"] = edition
 	}
-	infos, err := fetcher.Fetch_linux(linuxkernelcves, edition)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-	handler := db.GetDBHandler(version)
-	for i := 0; i < len(infos); i++ {
-		infos[i].Score, infos[i].Cvss, _ = fecthNVDCore(infos[i].Cve_id)
-		handler.Save(&infos[i])
-	}
+	go func(edition string) {
+		infos, err := fetcher.Fetch_linux(linuxkernelcves, edition)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		handler := db.GetDBHandler(version)
+		for i := 0; i < len(infos); i++ {
+			infos[i].Score, infos[i].Cvss, _ = fecthNVDCore(infos[i].Cve_id)
+			handler.Save(&infos[i])
+		}
+	}(edition)
 	insertLog(&db.Log{
 		Operator:    c.GetString("username"),
 		Action:      db.LogActionFecthDebian,
