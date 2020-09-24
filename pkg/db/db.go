@@ -29,14 +29,6 @@ func Init(host string, pwd_sql string) {
 	db.DB().SetMaxIdleConns(0)
 	db.DB().SetMaxOpenConns(100)
 	var verList VersionList
-	ver := &Version{
-		Version:       "v20",
-		DebianVersion: "buster",
-		TrackerURL:    "https://security-tracker.debian.org/tracker",
-		ReleaseURL:    "https://security-tracker.debian.org/tracker/status/release/stable",
-		DebianSeq:     10,
-	}
-	db.Save(ver)
 	if !db.HasTable(&Linux{}) {
 		db.CreateTable(&Linux{})
 	}

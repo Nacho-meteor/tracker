@@ -169,14 +169,20 @@ func (cve *CVE) Save(version string) error {
 }
 
 // NewCVE query cve by id
-func NewCVE(id, version string) (*CVE, error) {
+func NewCVE(params map[string]interface{}, id, version string) (*CVE, error) {
 	handler := GetDBHandler(version)
+	effect, ok := params["effect"]
 	if handler == nil {
 		return nil, fmt.Errorf("Not found db hander for version '%s'", version)
 	}
 
 	var cve CVE
-	err := handler.Table(("dist-cve")).Where("`cve_id` = ?", id).First(&cve).Error //修改
+	var err error
+	if ok {
+		err = handler.Table(("dist-cve")).Where("`cve_id` = ? and `effect` LIKE ?", id, effect).First(&cve).Error
+	} else {
+		err = handler.Table(("dist-cve")).Where("`cve_id` = ?", id).First(&cve).Error //修改
+	}
 	if err != nil {
 		return nil, err
 	}

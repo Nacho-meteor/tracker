@@ -123,15 +123,17 @@ func QueryLinuxList(params map[string]interface{}, offset, count int,
 	score, ok := params["score"]
 	if ok {
 		scoreParam := strings.Split(score.(string), "-")
-		scoreone, _ := strconv.Atoi(scoreParam[0])
+		scoreone, _ := strconv.ParseFloat(scoreParam[0], 64)
+		num1 := strconv.FormatFloat(scoreone, 'f', -1, 64)
 		if len(scoreParam) == 1 {
-			sql = sql.Where("score = ? ", scoreone)
+			sql = sql.Where("score = ? ", num1)
 		} else if len(scoreParam) == 2 {
-			scoretwo, _ := strconv.Atoi(scoreParam[1])
+			scoretwo, _ := strconv.ParseFloat(scoreParam[1], 64)
+			num2 := strconv.FormatFloat(scoretwo, 'f', -1, 64)
 			if scoreone > scoretwo {
-				scoreone, scoretwo = scoretwo, scoreone
+				num1, num2 = num2, num1
 			}
-			sql = sql.Where("score >= ? and score <= ?", scoreone, scoretwo)
+			sql = sql.Where("score >= ? and score <= ?", num1, num2)
 		}
 	}
 	var linux db.Linux_core
@@ -146,7 +148,7 @@ func QueryLinuxList(params map[string]interface{}, offset, count int,
 
 // UpdateCVE modify cve info
 func UpdateCVE(id, version string, values map[string]interface{}) (*db.CVE, error) {
-	cve, err := db.NewCVE(id, version)
+	cve, err := db.NewCVE(nil, id, version)
 	if err != nil {
 		return nil, err
 	}
@@ -178,15 +180,17 @@ func addParamsToSQL(sql *gorm.DB, params map[string]interface{}) *gorm.DB {
 	score, ok := params["score"]
 	if ok {
 		scoreParam := strings.Split(score.(string), "-")
-		scoreone, _ := strconv.Atoi(scoreParam[0])
+		scoreone, _ := strconv.ParseFloat(scoreParam[0], 64)
+		num1 := strconv.FormatFloat(scoreone, 'f', -1, 64)
 		if len(scoreParam) == 1 {
-			sql = sql.Where("score = ? ", scoreone)
+			sql = sql.Where("score = ? ", num1)
 		} else if len(scoreParam) == 2 {
-			scoretwo, _ := strconv.Atoi(scoreParam[1])
+			scoretwo, _ := strconv.ParseFloat(scoreParam[1], 64)
+			num2 := strconv.FormatFloat(scoretwo, 'f', -1, 64)
 			if scoreone > scoretwo {
-				scoreone, scoretwo = scoretwo, scoreone
+				num1, num2 = num2, num1
 			}
-			sql = sql.Where("score >= ? and score <= ?", scoreone, scoretwo)
+			sql = sql.Where("score >= ? and score <= ?", num1, num2)
 		}
 	}
 	ex_pkg, ok := params["ex_pkg"]

@@ -175,6 +175,7 @@ func getUPList(c *gin.Context) {
 }
 
 func getCVE(c *gin.Context) {
+	var params = make(map[string]interface{})
 	id := c.Param("id")
 	version := c.Param("version")
 	if len(id) == 0 || len(version) == 0 {
@@ -183,8 +184,12 @@ func getCVE(c *gin.Context) {
 		})
 		return
 	}
+	eff := c.Query("effect")
+	if len(eff) != 0 {
+		params["effect"] = "%" + eff + "%"
+	}
 
-	info, err := db.NewCVE(id, version)
+	info, err := db.NewCVE(params,id, version)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
